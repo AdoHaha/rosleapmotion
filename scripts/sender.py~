@@ -8,11 +8,9 @@ from std_msgs.msg import Bool
 # Obviously, this method publishes the data defined in leapros.msg to /leapmotion/data
 def gesture_reaction(gesture_type):
         print "received gesture"
-        if gesture_type=="swipe_right" or gesture_type=="swipe_left":
-
+        if gesture_type=="swipe_right":
                 pub_track_on.publish(False)
-                return
-                
+                return                
         if gesture_type=="key_tap":
                 pub_track_on.publish(True)
 def sender():

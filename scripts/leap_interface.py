@@ -19,11 +19,12 @@ import time
 # Set (append) your PYTHONPATH properly, or just fill in the location of your LEAP
 # SDK folder, e.g., ../LeapSDK/lib where the Leap.py lives and /LeapSDK/lib/x64 or
 # x86 where the *.so files reside.
-sys.path.append("/home/igor/Downloads/LeapDeveloperKit/LeapSDK/lib")
-sys.path.append("/home/igor/Downloads/LeapDeveloperKit/LeapSDK/lib/x64")
+sys.path.append("/home/igor/Downloads/LeapDeveloperKit_2.0.1+15831_linux/LeapSDK/lib")
+sys.path.append("/home/igor/Downloads/LeapDeveloperKit_2.0.1+15831_linux/LeapSDK/lib/x64")
 import threading
 import Leap
 from Leap import CircleGesture, KeyTapGesture, ScreenTapGesture, SwipeGesture
+import math
 
 
 class LeapInterface(Leap.Listener):
@@ -37,17 +38,20 @@ class LeapInterface(Leap.Listener):
         self.hand_pitch     = 0.0
         self.hand_yaw       = 0.0
         self.hand_roll      = 0.0
+        self.prev_swipe    = 0
+        self.gesture_reaction=lambda gesture_type: None
         print "Initialized Leap Motion Device"
 
     def on_connect(self, controller):
         print "Connected to Leap Motion Controller"
 
         # Enable gestures
-        controller.enable_gesture(Leap.Gesture.TYPE_CIRCLE);
+#        controller.enable_gesture(Leap.Gesture.TYPE_CIRCLE);
         controller.enable_gesture(Leap.Gesture.TYPE_KEY_TAP);
-        controller.enable_gesture(Leap.Gesture.TYPE_SCREEN_TAP);
+ #       controller.enable_gesture(Leap.Gesture.TYPE_SCREEN_TAP);
         controller.enable_gesture(Leap.Gesture.TYPE_SWIPE);
-
+        controller.config.set("Gesture.Swipe.MinVelocity",500);
+        controller.config.save()
     def on_disconnect(self, controller):
         # Note: not dispatched when running in a debugger.
         print "Disconnected Leap Motion"
@@ -56,6 +60,7 @@ class LeapInterface(Leap.Listener):
         print "Exited Leap Motion Controller"
 
     def on_frame(self, controller):
+        #self.recorded_gestures=[]
         # Get the most recent frame and report some basic information
         frame = controller.frame()
 
@@ -125,16 +130,25 @@ class LeapInterface(Leap.Listener):
 
                 if gesture.type == Leap.Gesture.TYPE_SWIPE:
                     swipe = SwipeGesture(gesture)
+                    #if(swipe.direction.x>2*swipe.direction.y and swipe.direction.x>2*swipe.direction.z):
+                    leng=math.sqrt(swipe.direction[0]**2+swipe.direction[1]**2+swipe.direction[2]**2)
+                    if(swipe.direction[0]>0.8*leng):
+                        print "swipe right"
+                        self.gesture_reaction("swipe_right");
+                    if(swipe.direction[0]<-0.8*leng):
+                        print "swipe left"
+                        self.gesture_reaction("swipe_left")
+                    self.prev_swipe=gesture.id
                     print "Swipe id: %d, state: %s, position: %s, direction: %s, speed: %f" % (
                             gesture.id, self.state_string(gesture.state),
                             swipe.position, swipe.direction, swipe.speed)
-
+                     
                 if gesture.type == Leap.Gesture.TYPE_KEY_TAP:
                     keytap = KeyTapGesture(gesture)
                     print "Key Tap id: %d, %s, position: %s, direction: %s" % (
                             gesture.id, self.state_string(gesture.state),
                             keytap.position, keytap.direction )
-
+                    self.gesture_reaction("key_tap");
                 if gesture.type == Leap.Gesture.TYPE_SCREEN_TAP:
                     screentap = ScreenTapGesture(gesture)
                     print "Screen Tap id: %d, %s, position: %s, direction: %s" % (
